@@ -30,16 +30,21 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy existing application directory contents
 COPY . /var/www/html
 
+# Create writable Laravel directories and set only required permissions
+RUN mkdir -p storage/app/public \
+    storage/framework/cache \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs \
+    bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
 # Install composer dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Set proper permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 /var/www/html/storage \
-    && chmod -R 775 /var/www/html/bootstrap/cache
-
-# Make entrypoint script executable
-RUN chmod +x /var/www/html/entrypoint.sh
+# Make entrypoint script executable (if it exists)
+RUN if [ -f /var/www/html/entrypoint.sh ]; then chmod +x /var/www/html/entrypoint.sh; fi
 
 # Set Apache document root to public directory
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
@@ -52,5 +57,5 @@ RUN a2enmod rewrite
 # Expose port 80
 EXPOSE 80
 
-# Use entrypoint script
-ENTRYPOINT ["/var/www/html/entrypoint.sh"]
+# Start Apache server directly (simpler)
+CMD ["apache2-foreground"]
