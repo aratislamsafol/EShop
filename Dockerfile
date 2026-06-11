@@ -30,10 +30,16 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy existing application directory contents
 COPY . /var/www/html
 
+# Install composer dependencies
+RUN composer install --no-dev --optimize-autoloader
+
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage \
     && chmod -R 775 /var/www/html/bootstrap/cache
+
+# Make entrypoint script executable
+RUN chmod +x /var/www/html/entrypoint.sh
 
 # Set Apache document root to public directory
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
@@ -46,5 +52,5 @@ RUN a2enmod rewrite
 # Expose port 80
 EXPOSE 80
 
-# Start Apache server
-CMD ["apache2-foreground"]
+# Use entrypoint script
+ENTRYPOINT ["/var/www/html/entrypoint.sh"]
